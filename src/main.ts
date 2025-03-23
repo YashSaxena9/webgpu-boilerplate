@@ -1,19 +1,30 @@
 import './style.css'
-import init, { run } from "./core/pkg/core.js";
+import init, { App } from "./core/generated/core.js";
 
-async function setup(): Promise<HTMLCanvasElement> {
-  await init();
-  const app = <HTMLCanvasElement>document.querySelector<HTMLCanvasElement>('#app');
-  app.width = app.clientWidth;
-  app.height = app.clientHeight;
-  return app;
+async function setup(): Promise<App> {
+  const canvas = <HTMLCanvasElement>document.querySelector<HTMLCanvasElement>('#app');
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+  return App.setup(canvas);
 }
 
-async function render(app: HTMLCanvasElement) {
-  await run(app);
+function update(app: App, time: number) {
+  app.update(time);
 }
+
+function render(app: App) {
+  app.render();
+}
+
 
 window.onload = async () => {
+  await init();
   const app = await setup();
-  await render(app);
+
+  function gameLoop(time: number) {
+    update(app, time / 1000.0) // update time
+    render(app);
+    requestAnimationFrame(gameLoop);
+  }
+  requestAnimationFrame(gameLoop);
 };
