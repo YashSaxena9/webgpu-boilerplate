@@ -1,5 +1,5 @@
 import './style.css'
-import init, { run } from "./core/pkg/core.js";
+import init, { run } from "./core/generated/core.js";
 
 async function setup(): Promise<HTMLCanvasElement> {
   await init();
