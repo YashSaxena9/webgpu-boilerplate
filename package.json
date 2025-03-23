@@ -1,0 +1,23 @@
+{
+  "name": "webgpu_boilerplate",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "author": {
+    "name": "Yash Saxena",
+    "url": "https://github.com/YashSaxena9"
+  },
+  "scripts": {
+    "dev": "npm run build-wasm && vite",
+    "build": "npm run build-wasm && tsc && vite build",
+    "dev-wasm": "cargo watch --workdir ./src/core -s \"wasm-pack build --target web\"",
+    "build-wasm": "wasm-pack build ./src/core --release --target web",
+    "build-rust": "cargo build --manifest-path ./src/core/Cargo.toml --target wasm32-unknown-unknown"
+  },
+  "devDependencies": {
+    "lite-server": "^2.6.1",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0",
+    "wasm-pack": "^0.13.1"
+  }
+}
