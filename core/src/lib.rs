@@ -16,7 +16,16 @@ use log::info;
 use wgpu::TextureFormat;
 
 #[wasm_bindgen]
+#[derive(Clone, Copy)]
+pub struct RequestedInput {
+    pub mouse_position: bool,
+    pub elapsed_time: bool,
+    pub delta_time: bool,
+}
+
+#[wasm_bindgen]
 pub struct App {
+    pub requested_input: RequestedInput,
     gpu: GpuContext,
     buffers: BufferManager,
     // textures: TextureManager,
@@ -46,12 +55,17 @@ impl App {
             // textures,
             pipeline,
             renderer,
+            requested_input: RequestedInput {
+                mouse_position: true,
+                elapsed_time: true,
+                delta_time: true,
+            },
         }
     }
 
     #[wasm_bindgen]
-    pub fn update(&mut self, time: f32) {
-        self.buffers.uniforms.update_time(&self.gpu.queue, time);
+    pub fn update(&mut self, time: Option<f32>, delta_time: Option<f32>, mouse_pos_x: Option<f32>, mouse_pos_y: Option<f32>) {
+        self.buffers.uniforms.update(&self.gpu.queue, time, delta_time, mouse_pos_x, mouse_pos_y);
     }
 
     #[wasm_bindgen]

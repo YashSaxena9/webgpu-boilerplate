@@ -50,10 +50,12 @@ impl Renderer {
             render_pass.set_pipeline(&pipeline.pipeline);
             render_pass.set_vertex_buffer(0, buffers.vertex_buffer.slice(..));
             render_pass.set_index_buffer(buffers.index_buffer.slice(..), IndexFormat::Uint16);
+
             render_pass.set_bind_group(0, &buffers.uniforms.bind_group, &[]); // matches @group(0)
             // if !textures.textures.is_empty() {
             //     render_pass.set_bind_group(1, &textures.bind_group, &[]);
             // }
+
             render_pass.draw_indexed(0..buffers.index_length as u32, 0, 0..1);
         }
 

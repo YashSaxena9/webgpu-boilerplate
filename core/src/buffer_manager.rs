@@ -1,41 +1,53 @@
+use log::info;
 use wgpu::{util::{BufferInitDescriptor, DeviceExt}, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, Buffer, BufferBindingType, BufferUsages, Device, Queue, ShaderStages};
 use crate::utils;
 
 // Uniforms
 #[repr(C)]
-#[derive(Clone, Copy)]
-pub struct ScreenSize {
-    pub width: f32,
-    pub height: f32,
+#[derive(Clone, Copy, Debug)]
+pub struct StaticUniform {
+    pub screen_width: f32,
+    pub screen_height: f32,
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
-pub struct TimeUniform {
+#[derive(Clone, Copy, Debug)]
+pub struct DynamicUniform {
     pub time: f32,
+    pub delta_time: f32,
+    pub mouse_position: [f32; 2],
 }
 
 pub struct UniformManager {
-    pub screen_size_buffer: Buffer,
-    pub time_buffer: Buffer,
+    pub static_uniform_data: StaticUniform,
+    pub static_uniform_buffer: Buffer,
+    pub dynamic_uniform_data: DynamicUniform,
+    pub dynamic_uniform_buffer: Buffer,
     pub bind_group: BindGroup,
     pub bind_group_layout: BindGroupLayout,
 }
 
 impl UniformManager {
     pub fn new(device: &Device, width: f32, height: f32) -> Self {
-        let screen_size = ScreenSize { width, height };
-        let time = TimeUniform { time: 0.0 };
+        let static_uniform_data = StaticUniform {
+            screen_width: width,
+            screen_height: height
+        };
+        let dynamic_uniform_data = DynamicUniform {
+            time: 0.0,
+            delta_time: 0.0,
+            mouse_position: [0.0, 0.0],
+        };
 
-        let screen_size_buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Screen Size Buffer"),
-            contents: utils::as_byte_array(&screen_size),
+        let static_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Static Uniform Buffer"),
+            contents: utils::as_byte_array(&static_uniform_data),
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
 
-        let time_buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Time Buffer"),
-            contents: utils::as_byte_array(&time),
+        let dynamic_uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Dynamic Uniform Buffer"),
+            contents: utils::as_byte_array(&dynamic_uniform_data),
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
 
@@ -73,26 +85,49 @@ impl UniformManager {
             entries: &[
                 BindGroupEntry {
                     binding: 0,
-                    resource: screen_size_buffer.as_entire_binding(),
+                    resource: static_uniform_buffer.as_entire_binding(),
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: time_buffer.as_entire_binding(),
+                    resource: dynamic_uniform_buffer.as_entire_binding(),
                 },
             ],
         });
 
         Self {
-            screen_size_buffer,
-            time_buffer,
+            static_uniform_data,
+            static_uniform_buffer,
+            dynamic_uniform_data,
+            dynamic_uniform_buffer,
             bind_group,
             bind_group_layout,
         }
     }
 
-    pub fn update_time(&self, queue: &Queue, time: f32) {
-        let time_data = TimeUniform { time };
-        queue.write_buffer(&self.time_buffer, 0, utils::as_byte_array(&time_data));
+    pub fn update(
+        &mut self,
+        queue: &Queue,
+        time: Option<f32>,
+        delta_time: Option<f32>,
+        mouse_pos_x: Option<f32>,
+        mouse_pos_y: Option<f32>
+    ) {
+        let mouse_position = if let (Some(x), Some(y)) = (mouse_pos_x, mouse_pos_y) {
+            [x, y]
+        } else {
+            self.dynamic_uniform_data.mouse_position
+        };
+        let dynamic_uniform_data = DynamicUniform {
+            time: time.unwrap_or(self.dynamic_uniform_data.time),
+            delta_time: delta_time.unwrap_or(self.dynamic_uniform_data.delta_time),
+            mouse_position
+        };
+        self.dynamic_uniform_data = dynamic_uniform_data;
+        queue.write_buffer(
+            &self.dynamic_uniform_buffer,
+            0,
+            utils::as_byte_array(&dynamic_uniform_data)
+        );
     }
 }
 
